@@ -3,13 +3,14 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const userSchema = new Schema(
+    //creates a new user schema with the necessary fields of user
   {
     firstName: {
       type: String,
       required: true,
       unique: false,
       trim: true,
-      minlength: 3,
+      minlength: 5,
       maxlength: 25
     },
     lastName: {
@@ -17,7 +18,7 @@ const userSchema = new Schema(
       required: true,
       unique: false,
       trim: true,
-      minlength: 3,
+      minlength: 5,
       maxlength: 25
     },
     email: {
