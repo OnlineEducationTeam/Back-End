@@ -6,6 +6,9 @@ var session = require("express-session");
 var multer = require("multer");
 const fs = require("fs");
 
+// Χρησιμοποιούμε το express framework του nodejs
+// Αρχικά, κάνουμε την σύνδεση με την βάση
+
 require("dotenv").config();
 
 const app = express();
@@ -17,7 +20,6 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-/*Upload, Download and View Files */
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "./public/");
@@ -65,45 +67,22 @@ app.get("/download/:id", (req, res) => {
   res.download(fileToSend);
 });
 
-/*Upload Photos  */
-var storagePhotos = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "./photos/");
-  },
-  filename: function (req, file, cb) {
-    var filename = file.originalname;
-    console.log(filename);
-    var ending = filename.split(".");
-    var and = ending[ending.length - 1];
-    cb(null, req.query.id);
-  },
-});
-
-var uploadPhotos = multer({ storage: storagePhotos }).single("file");
-
-app.post("/uploadPhoto", (req, res) => {
-  uploadPhotos(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      return res.status(500).json(err);
-    } else if (err) {
-      return res.status(500).json(err);
-    }
-    return res.status(200).send(req.file);
-  });
-});
-
 const uri = process.env.ATLAS_URI;
 mongoose.connect(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-/* connect to DB*/
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static("../client/build"));
+}
+
 const connection = mongoose.connection;
 connection.once("open", () => {
   console.log("MongoDB database connection established succesfully");
 });
 //Express Session
+// Δημιουργούμε το express session
 app.use(
   session({
     cookie: {
@@ -121,6 +100,14 @@ app.use(passport.session());
 
 const usersRouter = require("./routes/users");
 app.use("/users", usersRouter);
+
+/*
+  Εδώ παραμετροποιούμε το socket io. Αυτό στην ουσία είναι web sockets
+  που μας επιτρέπουν να ανταλλάσουν μηνύματα οι χρήστες.
+  Δημιουργούμε ένα δωμάτιο με τους δύο χρήστες και μιλάνε μέσα σε αυτό.
+  Έχει υλοποιηθεί με τέτοιο τρόπο ώστε να μπορούν και περισσότεροι χρήστες να επικοινωνήσουν για μελλοντική έκδοση της 
+  εφαρμογής
+*/
 
 // Socket.io
 var server = require("http").createServer(app);
@@ -142,19 +129,7 @@ io.on("connection", (socket) => {
     socket.join(info.userRoom);
     console.log(info.nf + " joined room " + info.userRoom);
   });
-
-  /* Video call config */
-  socket.on("videoConnection", (info) => {
-    console.log(
-      "The user " + info.nam + " wants to video chat with " + info.name
-    );
-    var person = info.name;
-    socket.broadcast.emit(person + "video", info.nam);
-  });
 });
-
-/*Access photos from FrontEnd*/
-app.use("/photos", express.static(__dirname + "/photos"));
 
 server.listen(port, () => {
   console.log("Server listens on port: " + port);
