@@ -11,9 +11,12 @@ const passport = require("passport");
 /*
       Παρακάτω, δημιουργούμε όλα τα routes. Έτσι, καταφέρνει μέσω του axios να επικοινωνήσει το front end με το back end.
       
+      
 */
 
 //file uploading packages
+
+// Το παρακάτω route μας επιστρέφει από την βάση όλους όσους είναι online
 
 router.route("/findonline").get((req, res) => {
   User.find(
@@ -24,10 +27,12 @@ router.route("/findonline").get((req, res) => {
     .catch((err) => res.status(400).json("Error: " + err));
 });
 
+// Γίνεται authorization του χρήστη όταν είναι να συνδεθεί στο σύστημά μας
 router.route("/auth").get((req, res) => {
   res.json(req.sessionStore.sessions);
 });
 
+// Κάνει signup o χρήστης
 router.route("/signup").post(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -67,6 +72,7 @@ router.route("/signup").post(async (req, res) => {
   }
 });
 
+// Κάνει update τις πληροφορίες του χρήστη
 router.route("/update/:id").post((req, res) => {
   User.findById(req.params.id)
     .then((user) => {
@@ -95,6 +101,7 @@ router.route("/signin/:email").get((req, res) => {
     .catch((err) => res.status(400).json("Error: " + err));
 });
 
+// Γίνεται το login του χρήστη στο σύστημα
 //Login Handle
 router.post("/login", passport.authenticate("local"), function (req, res) {
   // If this function gets called, authentication was successful.
