@@ -8,6 +8,11 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 
+/*
+      Παρακάτω, δημιουργούμε όλα τα routes. Έτσι, καταφέρνει μέσω του axios να επικοινωνήσει το front end με το back end.
+      
+*/
+
 //file uploading packages
 
 router.route("/findonline").get((req, res) => {
@@ -62,6 +67,23 @@ router.route("/signup").post(async (req, res) => {
   }
 });
 
+router.route("/update/:id").post((req, res) => {
+  User.findById(req.params.id)
+    .then((user) => {
+      user.firstName = req.body.firstName;
+      user.lastName = req.body.lastName;
+      user.email = req.body.email;
+      user.password = req.body.password;
+      user.aboutSelf = req.body.aboutSelf;
+
+      user
+        .save()
+        .then(() => res.json("user updated!"))
+        .catch((err) => res.status(400).json("Error :" + err));
+    })
+    .catch((err) => res.status(400).json("Error: " + err));
+});
+
 router.route("/signin/:email").get((req, res) => {
   User.findOne({ email: req.params.email })
     .then((user) => {
@@ -80,11 +102,13 @@ router.post("/login", passport.authenticate("local"), function (req, res) {
   // Then you can send your json as response.
   const userSession = new UserSession();
   userSession.userId = req.user._id;
+  userSession.firstName = req.user.firstName;
   userSession
     .save()
     .then(() => {
       return res.send({
         token: userSession.userId,
+        firstName: userSession.firstName,
       });
     })
     .catch((err) => res.return(err));
@@ -103,6 +127,14 @@ router.post("/postreview/:review", (req, res) => {
     .catch((err) => res.return(err));
 });
 
+router.get("/delete/:session", (req, res) => {
+  UserSession.findOneAndDelete({
+    userId: req.query.userId,
+  }).then(() => {
+    return res.send("deleted");
+  });
+});
+
 router.get("/whichuser/:session", (req, res) => {
   User.findOne(
     {
@@ -112,6 +144,15 @@ router.get("/whichuser/:session", (req, res) => {
   )
     .then((user) => {
       res.json(user);
+    })
+    .catch((err) => res.status(400).json("Error: " + err));
+});
+
+router.get("/online/", (req, res) => {
+  UserSession.find()
+    .select("userId")
+    .then((e) => {
+      res.send(e);
     })
     .catch((err) => res.status(400).json("Error: " + err));
 });
@@ -130,6 +171,35 @@ router.post("/updateUser/:id", (req, res) => {
         .catch((err) => res.status(400).json("Error :" + err));
     })
     .catch((err) => res.status(400).json("Error: " + err));
+});
+
+router.get("/getreviews/id", (req, res) => {
+  ProfessorReview.find({ userId: req.query.id }).then((review) => {
+    res.send(review);
+  });
+});
+
+router.get("/starratings/id", (req, res) => {
+  ProfessorReview.find({ userId: req.query.id })
+    .then((review) => {
+      var star = [];
+      review.forEach((review) => {
+        star.push(review.stars);
+      });
+      var allNumbers = 0;
+      var allReviews = 0;
+      star.forEach((star) => {
+        var stringToNumbStar = parseInt(star);
+        allNumbers = stringToNumbStar + allNumbers;
+        allReviews = allReviews + 1;
+      });
+      var average = allNumbers / allReviews;
+      average = Math.round(average);
+      res.json(average);
+    })
+    .catch((err) => {
+      res.send(err);
+    });
 });
 
 module.exports = router;
